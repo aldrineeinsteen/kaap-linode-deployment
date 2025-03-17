@@ -1,0 +1,99 @@
+helm repo add kaap https://datastax.github.io/kaap
+helm repo update
+
+helm install pulsar kaap/kaap-stack \
+  --namespace pulsar \
+  --create-namespace \
+  --values ./modules/kaap/values.yaml
+
+
+./pulsar-client produce persistent://public/default/my-topic --url pulsar://172.236.4.217:6650 --messages "Hello, Pulsar"
+
+./bin/pulsar-client produce persistent://public/default/my-topic \
+    --messages "Corrected Topic Name Test -1"
+
+
+
+./bin/pulsar-client consume persistent://public/default/my-topic \
+    -s my-new-subscription \
+    -n 10
+
+
+
+helm upgrade pulsar kaap/kaap-stack \
+  --namespace pulsar \
+  --values ./modules/kaap/values.yaml
+
+
+
+./pulsar-admin functions create \
+  --tenant public \
+  --namespace default \
+  --name anagram-function \
+  --inputs persistent://public/default/words-input \
+  --py /Users/aldrine.einsteen/projects/kaap-linode-deployment/kaap-function/anagram.py \
+  --classname AnagramFunction \
+  --output persistent://public/default/anagrams-output \
+  --cpu 0.2 \
+  --ram 268435456
+
+
+./pulsar-admin topics create persistent://public/default/words-input
+./pulsar-admin topics create persistent://public/default/anagrams-output
+./pulsar-admin topics create persistent://public/default/non-anagrams-output
+
+./pulsar-admin topics create persistent://public/default/palindromes-output
+./pulsar-admin topics create persistent://public/default/non-palindromes-output
+
+./pulsar-admin topics list public/default
+
+
+./pulsar-client consume persistent://public/default/words-input -s test-subscription -n 10
+
+./pulsar-client produce persistent://public/default/words-input --messages "test,sett"
+
+
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager --create-namespace \
+  --set installCRDs=true
+
+
+  kubectl logs deploy/kaap -n pulsar
+
+  kubectl get secrets -n pulsar | grep pulsar-tls
+
+
+
+kubectl get secret pulsar-tls -n pulsar -o jsonpath="{.data.tls\.crt}" | base64 --decode > ../server/client-cert.pem
+kubectl get secret pulsar-tls -n pulsar -o jsonpath="{.data.tls\.key}" | base64 --decode > ../server/client-key.pem
+kubectl get secret pulsar-tls -n pulsar -o jsonpath="{.data.ca}" | base64 --decode > ../server/ca-cert.pem
+
+
+./pulsar-admin functions create \
+  --tenant public \
+  --namespace default \
+  --name palindrome-function \
+  --inputs persistent://public/default/words-input \
+  --jar /Users/aldrine.einsteen/projects/kaap-linode-deployment/kaap-function/target/pulsar-palindrome-function-1.0.0.jar \
+  --classname com.aldrine.PalindromeFunction \
+  --output persistent://public/default/palindromes-output \
+  --cpu 0.2 \
+  --ram 268435456
+
+./pulsar-admin functions delete \
+  --tenant public \
+  --namespace default \
+  --name palindrome-function
+
+./pulsar-admin functions status \
+  --tenant public \
+  --namespace default \
+  --name palindrome-function
+
+./pulsar-admin functions list \
+  --tenant public \
+  --namespace default
+
+./pulsar-admin functions list --tenant public --namespace default

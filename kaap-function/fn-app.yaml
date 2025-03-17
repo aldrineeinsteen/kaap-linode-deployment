@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: palindrome-function
+  namespace: pulsar
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: palindrome-function
+  template:
+    metadata:
+      labels:
+        app: palindrome-function
+    spec:
+      containers:
+        - name: palindrome-function
+          image: apachepulsar/pulsar-functions-java-runner:3.0.0
+          command: [ "/pulsar/bin/pulsar-admin" ]
+          args:
+            - "functions"
+            - "localrun"
+            - "--tenant"
+            - "public"
+            - "--namespace"
+            - "default"
+            - "--name"
+            - "palindrome-function"
+            - "--inputs"
+            - "persistent://public/default/words-input"
+            - "--output"
+            - "persistent://public/default/palindromes-output"
+            - "--jar"
+            - "/pulsar/functions/pulsar-palindrome-function-1.0.0.jar"
+            - "--classname"
+            - "com.aldrine.PalindromeFunction"
+            - "--parallelism"
+            - "1"
+            - "--processing-guarantees"
+            - "ATLEAST_ONCE"
+          volumeMounts:
+            - name: function-jar
+              mountPath: /pulsar/functions
+      volumes:
+        - name: function-jar
+          hostPath:
+            path: "/Users/aldrine.einsteen/projects/kaap-linode-deployment/kaap-function/target/"
+            type: Directory

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pulsar-function-logs-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: linode-block-storage-retain
+  csi:
+    driver: linodebs.csi.linode.com
+    volumeHandle: pulsar-function-logs-volume
